@@ -39,6 +39,5 @@ func Format(data any, config *Config) ([]byte, error) {
 		t.Field(data, config.AdditionalField)
 		return t.Flush()
 	}
-
 	return nil, nil
 }
