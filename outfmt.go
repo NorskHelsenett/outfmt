@@ -11,7 +11,7 @@ import (
 type OutputFormat int64
 
 const (
-	OutputFormatJSON = iota
+	OutputFormatJSON OutputFormat = iota
 	OutputFormatYAML
 	OutputFormatTable
 	OutputFormatField
