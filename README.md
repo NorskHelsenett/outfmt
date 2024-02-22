@@ -7,7 +7,7 @@ outfmt is a library which can take in any generic data and print it out. Either 
 some examples can be found under the _examples directory
 
 ```go
-output, err := outfmt.Format(MY_GENERIC_DATA, &outfmt.Config{
+output, err := outfmt.Format($MY_GENERIC_OBJECT, &outfmt.Config{
     Format: outfmt.OutputFormatTable,
 })
 if err != nil {
@@ -16,19 +16,58 @@ if err != nil {
 }
 ```
 
+## registering types.
 
-## tags
-
-the table view depends on tags to determine which fields to print. Example
+when wanting to output structs as a table the struct firstly needs to be registed. The registration process also defined
+the fields which will be printed and the names they will get. Printing happens on a whitelist and not a blacklist like the json
+and yaml printers.
 
 ```go
+
 type Data struct {
-    Id string
-    Name string `outfmt:"NAME"`
+    Id     string
+    Name   string
+    Active bool
 }
+
+func init() {
+    outfmt.Register(Data{}, &outfmt.Spec{
+        "default": {
+            {"ID", "Id"},
+            {"NAME", "Name"},
+        },
+        "wide": {
+            {"ID", "Id"},
+            {"NAME", "Name"},
+            {"ACTIVE", "Active"},
+        },
+    })
+}
+
+// output
+-------------------------------------
+ID      NAME  
+12323   cool  
+534324  cool  
+1gerfs  cool 
 ```
 
-in this example only the Name field will be printed when using a table view. Tagging is only neccesary for table view.
+Now, when formatting the struct as a table outfmt will only print the Id and Names field of the struct. The `outfmt.Spec` consists of a 
+map, this allows us to create certain conditions for what fields outfmt will print. If not being told otherwise outfmt will choose the 
+default condition.
+
+```go
+// output
+-------------------------------------
+ID      NAME  ACTIVE  
+12323   cool  true    
+534324  cool  false   
+1gerfs  cool  true 
+```
+
+### changing the condition 
+
+when specifying the Condition output format we must pass the name of the condition in the AdditionalField property of the `outfmt.Config`
 
 ## formats
 
@@ -36,6 +75,7 @@ in this example only the Name field will be printed when using a table view. Tag
 - YAML
 - Table
 - Field
+- Condition
 
 ## field
 
@@ -52,7 +92,7 @@ type Person struct {
     Age int
 }
 
-output, err := outfmt.Format(MY_GENERIC_DATA, &outfmt.Config{
+output, err := outfmt.Format($MY_GENERIC_OBJECT, &outfmt.Config{
     Format: outfmt.OutputFormatField,
     AdditionalField: "Names.First"
 })
@@ -60,6 +100,19 @@ if err != nil {
     fmt.Fprintf(os.Stderr, "could not format data: %s", err.Error())
     return
 }
+
+// output
+-------------------------------------
+John
+Dick
 ```
 
-here only the persons first name will be printed.
+here only the persons first name will be printed. AddtionalField can also be a comma seperated list of fields. When using a comma seperated
+list this is the output we get.
+
+```go
+// output
+-------------------------------------
+John Deere
+Dick McDonald
+```

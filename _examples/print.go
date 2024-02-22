@@ -8,13 +8,13 @@ import (
 )
 
 type Information struct {
-	Phone  int    `outfmt:"PHONE"`
-	Hidden string ``
+	Phone  int
+	Hidden string
 }
 
 type Credentials struct {
-	FirstName string `outfmt:"FIRST NAME"`
-	LastName  string `outfmt:"LAST NAME"`
+	FirstName string
+	LastName  string
 }
 
 type Person struct {
@@ -22,7 +22,13 @@ type Person struct {
 	Information Information
 }
 
-type Data struct {
+func init() {
+	outfmt.Register(Person{}, &outfmt.Spec{
+		"default": {
+			{"FIRST NAME", "Credentials.FirstName"},
+			{"PHONE", "Information.Phone"},
+		},
+	})
 }
 
 func main() {
