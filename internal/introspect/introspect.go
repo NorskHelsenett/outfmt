@@ -5,50 +5,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
-
-type Header struct {
-	Name string
-	Path []int
-	Wide bool
-}
-
-func introspectHeadersType(of reflect.Type, base []int) []Header {
-	if of.Kind() != reflect.Struct {
-		panic("input must be a struct")
-	}
-
-	headers := make([]Header, 0)
-
-	for i := 0; i < of.NumField(); i++ {
-		r := of.Field(i)
-
-		path := base
-
-		if r.Type.Kind() == reflect.Struct {
-			path = append(path, r.Index...)
-			headers = append(headers, introspectHeadersType(r.Type, path)...)
-			continue
-		}
-
-		if r.Tag.Get("outfmt") == "" {
-			continue
-		}
-
-		tags := strings.Split(r.Tag.Get("outfmt"), ",")
-
-		path = append(path, r.Index...)
-
-		wide := false
-		if len(tags) == 2 && tags[1] == "wide" {
-			wide = true
-		}
-
-		headers = append(headers, Header{Name: tags[0], Wide: wide, Path: path})
-	}
-
-	return headers
-}
 
 func isArray(object any) bool {
 	if reflect.TypeOf(object).Kind() == reflect.Array || reflect.TypeOf(object).Kind() == reflect.Slice {
@@ -58,12 +16,12 @@ func isArray(object any) bool {
 	return false
 }
 
-func IntrospectHeaders(object any) []Header {
-	if isArray(object) {
-		return introspectHeadersType(reflect.TypeOf(object).Elem(), []int{})
+func Strip(from reflect.Type) reflect.Type {
+	if from.Kind() == reflect.Array || from.Kind() == reflect.Slice || from.Kind() == reflect.Pointer {
+		return Strip(from.Elem())
 	}
 
-	return introspectHeadersType(reflect.TypeOf(object), []int{})
+	return from
 }
 
 func convertToString(val reflect.Value) string {
@@ -105,9 +63,9 @@ func convertToString(val reflect.Value) string {
 	case reflect.Pointer:
 		return convertToString(val.Elem())
 
+	case reflect.Struct:
 	case reflect.Array:
 	case reflect.Slice:
-	case reflect.Struct:
 	case reflect.Uintptr:
 	case reflect.Complex64:
 	case reflect.Complex128:
@@ -123,11 +81,18 @@ func convertToString(val reflect.Value) string {
 }
 
 func extractFieldValue(val reflect.Value, idx []int) string {
-	if val.Field(idx[0]).Type().Kind() == reflect.Struct {
-		return extractFieldValue(val.Field(idx[0]), idx[1:])
+	field := val.Field(idx[0])
+
+	if field.Type().Kind() == reflect.Struct {
+		// TODO: Should more types get special treatment, if so, what types?
+		if field.Type().Name() == "Time" {
+			return field.Addr().Interface().(*time.Time).String()
+		}
+
+		return extractFieldValue(field, idx[1:])
 	}
 
-	return convertToString(val.Field(idx[0]))
+	return convertToString(field)
 }
 
 func extractFieldsValue(val reflect.Value, fields [][]int) []string {
@@ -140,7 +105,12 @@ func extractFieldsValue(val reflect.Value, fields [][]int) []string {
 }
 
 func ExtractFields(object any, fields [][]int) []string {
-	return extractFieldsValue(reflect.ValueOf(object), fields)
+	val := reflect.ValueOf(object)
+	if val.Type().Kind() == reflect.Pointer {
+		val = val.Elem()
+	}
+
+	return extractFieldsValue(val, fields)
 }
 
 func extractFieldsOfArray(data any, fields [][]int) [][]string {
@@ -168,16 +138,6 @@ func IntrospectFieldsWithPath(data any, paths [][]int) [][]string {
 	return extractFieldsOfArray(data, paths)
 }
 
-// TODO: actually use wide
-func IntrospectFields(data any, headers []Header, wide bool) [][]string {
-	fields := [][]int{}
-	for _, header := range headers {
-		fields = append(fields, header.Path)
-	}
-
-	return IntrospectFieldsWithPath(data, fields)
-}
-
 func getFieldTypePath(of reflect.Type, fields []string) []int {
 	path := []int{}
 
@@ -197,11 +157,6 @@ func getFieldTypePath(of reflect.Type, fields []string) []int {
 
 func IntrospectFieldPath(data any, field string) []int {
 	fields := strings.Split(field, ".")
-
-	of := reflect.TypeOf(data)
-	if isArray(data) {
-		of = of.Elem()
-	}
-
+	of := Strip(reflect.TypeOf(data))
 	return getFieldTypePath(of, fields)
 }

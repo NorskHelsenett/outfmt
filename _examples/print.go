@@ -60,7 +60,7 @@ func main() {
 	}
 
 	output, err := outfmt.Format(people, &outfmt.Config{
-		Format: outfmt.OutputFormatJSON,
+		Format: outfmt.OutputFormatTable,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "could not format data: %s", err.Error())

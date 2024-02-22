@@ -2,9 +2,11 @@ package table
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"text/tabwriter"
 
+	"github.com/eskpil/outfmt/internal/cache"
 	"github.com/eskpil/outfmt/internal/introspect"
 )
 
@@ -22,13 +24,8 @@ func New() *Table {
 	return t
 }
 
-func (t *Table) addHeaders(headers []introspect.Header) {
-	collection := []string{}
-	for _, header := range headers {
-		collection = append(collection, header.Name)
-	}
-
-	t.AddRow(collection...)
+func (t *Table) addHeaders(headers []string) {
+	t.AddRow(headers...)
 }
 
 func (t *Table) addValues(values [][]string) {
@@ -36,17 +33,35 @@ func (t *Table) addValues(values [][]string) {
 		t.AddRow(row...)
 	}
 }
-func (t *Table) For(data any, wide bool) {
-	headers := introspect.IntrospectHeaders(data)
-	values := introspect.IntrospectFields(data, headers, wide)
+
+func (t *Table) For(data any, condition string) {
+	if !cache.Has(introspect.Strip(reflect.TypeOf(data))) {
+		panic(fmt.Sprintf("type: %s has not been registered", introspect.Strip(reflect.TypeOf(data))))
+	}
+
+	fields := cache.Get(introspect.Strip(reflect.TypeOf(data)))
+
+	headers := make([]string, 0)
+	paths := make([][]int, 0)
+
+	for _, e := range fields[condition] {
+		headers = append(headers, e.Key)
+		paths = append(paths, introspect.IntrospectFieldPath(data, e.Field))
+	}
+
+	values := introspect.IntrospectFieldsWithPath(data, paths)
 
 	t.addHeaders(headers)
 	t.addValues(values)
 }
 
 func (t *Table) Field(data any, field string) {
-	path := introspect.IntrospectFieldPath(data, field)
-	values := introspect.IntrospectFieldsWithPath(data, [][]int{path})
+	paths := make([][]int, 0)
+	for _, field := range strings.Split(field, ",") {
+		paths = append(paths, introspect.IntrospectFieldPath(data, field))
+	}
+
+	values := introspect.IntrospectFieldsWithPath(data, paths)
 
 	t.addValues(values)
 }

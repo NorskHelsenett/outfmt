@@ -2,11 +2,20 @@ package outfmt
 
 import (
 	"encoding/json"
+	"reflect"
 
+	"github.com/eskpil/outfmt/internal/cache"
 	"github.com/eskpil/outfmt/internal/table"
 
 	"gopkg.in/yaml.v2"
 )
+
+type SpecField struct {
+	Key   string
+	Field string
+}
+
+type Spec map[string][]SpecField
 
 type OutputFormat int64
 
@@ -15,6 +24,7 @@ const (
 	OutputFormatYAML
 	OutputFormatTable
 	OutputFormatField
+	OutputFormatCondition
 )
 
 type Config struct {
@@ -32,7 +42,11 @@ func Format(data any, config *Config) ([]byte, error) {
 		return yaml.Marshal(data)
 	case OutputFormatTable:
 		t := table.New()
-		t.For(data, false)
+		t.For(data, "default")
+		return t.Flush()
+	case OutputFormatCondition:
+		t := table.New()
+		t.For(data, config.AdditionalField)
 		return t.Flush()
 	case OutputFormatField:
 		t := table.New()
@@ -40,4 +54,19 @@ func Format(data any, config *Config) ([]byte, error) {
 		return t.Flush()
 	}
 	return nil, nil
+}
+
+func Register(of any, spec *Spec) {
+	fields := make(cache.Fields)
+	for c, condition := range *spec {
+		fields[c] = []cache.Entry{}
+		for _, e := range condition {
+			fields[c] = append(fields[c], cache.Entry{
+				Key:   e.Key,
+				Field: e.Field,
+			})
+		}
+	}
+
+	cache.Set(reflect.TypeOf(of), fields)
 }
