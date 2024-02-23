@@ -1,4 +1,4 @@
-module github.com/eskpil/outfmt
+module github.com/NorskHelsenett/outfmt
 
 go 1.22.0
 

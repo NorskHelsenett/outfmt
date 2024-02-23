@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"github.com/eskpil/outfmt/internal/cache"
-	"github.com/eskpil/outfmt/internal/table"
+	"github.com/NorskHelsenett/outfmt/internal/cache"
+	"github.com/NorskHelsenett/outfmt/internal/table"
 
 	"gopkg.in/yaml.v2"
 )

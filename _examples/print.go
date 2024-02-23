@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/eskpil/outfmt"
+	"github.com/NorskHelsenett/outfmt"
 )
 
 type Information struct {

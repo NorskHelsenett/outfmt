@@ -6,8 +6,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/eskpil/outfmt/internal/cache"
-	"github.com/eskpil/outfmt/internal/introspect"
+	"github.com/NorskHelsenett/outfmt/internal/cache"
+	"github.com/NorskHelsenett/outfmt/internal/introspect"
 )
 
 type Table struct {
